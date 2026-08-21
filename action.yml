@@ -1,0 +1,100 @@
+name: Cerbi Logging Governance Scanner
+description: Find sensitive data, unsafe logging patterns, and logging policy violations before production.
+author: Cerbi
+
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  path:
+    description: Repository path to scan.
+    required: false
+    default: .
+  policy:
+    description: Optional Cerbi policy file. When omitted, scanner discovery and safe defaults apply.
+    required: false
+    default: ''
+  fail-on:
+    description: Minimum severity that fails the action. Supports none, info, warning, low, medium, high, critical, error, and blocker.
+    required: false
+    default: none
+  scanner-version:
+    description: Cerbi.Scanner NuGet tool version. Use latest to follow the newest published scanner.
+    required: false
+    default: '1.1.0'
+  output-directory:
+    description: Directory for JSON, SARIF, and Markdown results. Defaults to a runner-temporary Cerbi directory.
+    required: false
+    default: ''
+  no-snippets:
+    description: Request privacy mode by omitting source snippets from scanner findings.
+    required: false
+    default: 'true'
+  upload-sarif:
+    description: Upload generated SARIF to GitHub code scanning. The workflow must grant security-events write permission.
+    required: false
+    default: 'false'
+
+outputs:
+  json-file:
+    description: Absolute path to the generated JSON report.
+    value: ${{ steps.scan.outputs.json-file }}
+  sarif-file:
+    description: Absolute path to the generated SARIF report.
+    value: ${{ steps.scan.outputs.sarif-file }}
+  summary-file:
+    description: Absolute path to the generated Markdown summary.
+    value: ${{ steps.scan.outputs.summary-file }}
+  scanner-exit-code:
+    description: Cerbi Scanner exit code. 0 is clean, 1 means configured threshold breached, and 2 means scanner/configuration error.
+    value: ${{ steps.scan.outputs.scanner-exit-code }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup .NET 10 LTS
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Run Cerbi Scanner
+      id: scan
+      shell: pwsh
+      env:
+        CERBI_SCAN_PATH: ${{ inputs.path }}
+        CERBI_POLICY: ${{ inputs.policy }}
+        CERBI_FAIL_ON: ${{ inputs.fail-on }}
+        CERBI_SCANNER_VERSION: ${{ inputs.scanner-version }}
+        CERBI_OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
+        CERBI_NO_SNIPPETS: ${{ inputs.no-snippets }}
+      run: '& "${{ github.action_path }}/scripts/run-cerbi-scanner.ps1"'
+
+    - name: Upload Cerbi SARIF to code scanning
+      if: ${{ inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-exists == 'true' }}
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ steps.scan.outputs.sarif-file }}
+
+    - name: Enforce Cerbi threshold
+      shell: pwsh
+      env:
+        CERBI_SCANNER_EXIT_CODE: ${{ steps.scan.outputs.scanner-exit-code }}
+      run: |
+        $code = 0
+        if (-not [int]::TryParse($env:CERBI_SCANNER_EXIT_CODE, [ref]$code)) {
+          Write-Error "Cerbi Scanner did not return a valid exit code."
+          exit 2
+        }
+
+        if ($code -eq 0) {
+          exit 0
+        }
+
+        if ($code -eq 1) {
+          Write-Error "Cerbi Scanner found one or more findings at or above the configured fail-on threshold."
+          exit 1
+        }
+
+        Write-Error "Cerbi Scanner failed with exit code $code."
+        exit $code
