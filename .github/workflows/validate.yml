@@ -1,0 +1,95 @@
+name: Validate Cerbi Scanner Action
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cross-platform:
+    name: Scan demo on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout Action
+        uses: actions/checkout@v7
+
+      - name: Checkout Cerbi log risk demo
+        uses: actions/checkout@v7
+        with:
+          repository: Zeroshi/cerbi-log-risk-demo
+          path: test-fixture
+
+      - name: Run Cerbi Scanner Action
+        id: cerbi
+        uses: ./
+        with:
+          path: test-fixture
+          policy: test-fixture/policies/cerbi-policy.yml
+          fail-on: none
+          scanner-version: '1.1.0'
+          upload-sarif: 'false'
+
+      - name: Verify reports
+        shell: pwsh
+        env:
+          CERBI_JSON: ${{ steps.cerbi.outputs.json-file }}
+          CERBI_SARIF: ${{ steps.cerbi.outputs.sarif-file }}
+          CERBI_SUMMARY: ${{ steps.cerbi.outputs.summary-file }}
+          CERBI_EXIT: ${{ steps.cerbi.outputs.scanner-exit-code }}
+        run: |
+          foreach ($file in @($env:CERBI_JSON, $env:CERBI_SARIF, $env:CERBI_SUMMARY)) {
+            if ([string]::IsNullOrWhiteSpace($file) -or -not (Test-Path $file)) {
+              throw "Expected Cerbi report was not generated: $file"
+            }
+          }
+
+          if ($env:CERBI_EXIT -ne '0') {
+            throw "Report-only validation expected scanner exit code 0, got $env:CERBI_EXIT"
+          }
+
+      - name: Upload validation reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cerbi-scan-${{ matrix.os }}
+          path: |
+            ${{ steps.cerbi.outputs.json-file }}
+            ${{ steps.cerbi.outputs.sarif-file }}
+            ${{ steps.cerbi.outputs.summary-file }}
+
+  sarif-upload:
+    name: Verify GitHub code scanning upload
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout Action
+        uses: actions/checkout@v7
+
+      - name: Checkout Cerbi log risk demo
+        uses: actions/checkout@v7
+        with:
+          repository: Zeroshi/cerbi-log-risk-demo
+          path: test-fixture
+
+      - name: Run Cerbi Scanner Action with SARIF upload
+        uses: ./
+        with:
+          path: test-fixture
+          policy: test-fixture/policies/cerbi-policy.yml
+          fail-on: none
+          scanner-version: '1.1.0'
+          upload-sarif: 'true'
