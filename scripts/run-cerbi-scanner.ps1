@@ -9,7 +9,7 @@ $env:DOTNET_NOLOGO = '1'
 $scanPath = if ([string]::IsNullOrWhiteSpace($env:CERBI_SCAN_PATH)) { '.' } else { $env:CERBI_SCAN_PATH }
 $policyPath = $env:CERBI_POLICY
 $failOn = if ([string]::IsNullOrWhiteSpace($env:CERBI_FAIL_ON)) { 'none' } else { $env:CERBI_FAIL_ON }
-$scannerVersion = if ([string]::IsNullOrWhiteSpace($env:CERBI_SCANNER_VERSION)) { '1.1.0' } else { $env:CERBI_SCANNER_VERSION }
+$scannerVersion = if ([string]::IsNullOrWhiteSpace($env:CERBI_SCANNER_VERSION)) { '1.2.0' } else { $env:CERBI_SCANNER_VERSION }
 $noSnippets = $env:CERBI_NO_SNIPPETS -ne 'false'
 
 if ([string]::IsNullOrWhiteSpace($env:CERBI_OUTPUT_DIRECTORY)) {
@@ -96,7 +96,7 @@ Write-Host "Running Cerbi Scanner against '$scanPath' with fail-on '$failOn'."
 & $scannerExecutable @scanArgs
 $scannerExitCode = $LASTEXITCODE
 
-# Cerbi.Scanner 1.1.0 can emit empty SARIF fix entries. GitHub rejects those,
+# Some scanner versions can emit empty SARIF fix entries. GitHub rejects those,
 # so normalize only that invalid shape and leave the rest of the report intact.
 if (Test-Path $sarifFile) {
     try {

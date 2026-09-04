@@ -1,5 +1,5 @@
 name: Cerbi Logging Governance Scanner
-description: Find sensitive data, unsafe logging patterns, and logging policy violations before production.
+description: Find sensitive data, unsafe logging patterns, AI dependency signals, and logging policy violations before production.
 author: Cerbi
 
 branding:
@@ -22,7 +22,7 @@ inputs:
   scanner-version:
     description: Cerbi.Scanner NuGet tool version. Use latest to follow the newest published scanner.
     required: false
-    default: '1.1.0'
+    default: '1.2.0'
   output-directory:
     description: Directory for JSON, SARIF, and Markdown results. Defaults to a runner-temporary Cerbi directory.
     required: false

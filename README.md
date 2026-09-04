@@ -1,8 +1,8 @@
 # Cerbi Logging Governance Scanner for GitHub Actions
 
-Find risky logging before it reaches production.
+Find risky logging and AI integration signals before they reach production.
 
-Cerbi Scanner statically analyzes application logging calls for sensitive data exposure, unsafe payload logging, policy violations, and other logging-governance risks. It runs on the GitHub Actions runner and does not upload source code or findings to Cerbi by default.
+Cerbi Scanner statically analyzes application logging calls for sensitive data exposure, unsafe payload logging, policy violations, AI dependency signals, and other logging-governance risks. It runs on the GitHub Actions runner and does not upload source code or findings to Cerbi by default.
 
 ## Quick start
 
@@ -61,7 +61,7 @@ GitHub code-scanning availability depends on the repository and GitHub plan. The
 | `path` | `.` | Repository path to scan. |
 | `policy` | empty | Optional Cerbi policy file. Scanner discovery/default behavior applies when omitted. |
 | `fail-on` | `none` | Minimum finding severity that fails the Action. |
-| `scanner-version` | `1.1.0` | `Cerbi.Scanner` NuGet tool version. `latest` follows the newest published package. |
+| `scanner-version` | `1.2.0` | `Cerbi.Scanner` NuGet tool version. `latest` follows the newest published package. |
 | `output-directory` | runner temp | Directory for JSON, SARIF, and Markdown results. |
 | `no-snippets` | `true` | Requests privacy mode for report content. |
 | `upload-sarif` | `false` | Upload SARIF to GitHub code scanning. Requires `security-events: write`. |
@@ -99,18 +99,21 @@ The Markdown report is also appended to the GitHub Actions job summary.
 
 The current Scanner supports C#, Go, Java, JavaScript/TypeScript, and Python logging patterns. It can identify governance issues such as sensitive/disallowed fields, risky payload logging, unsafe object serialization, and policy violations. Exact rules are determined by the installed `Cerbi.Scanner` version and optional Cerbi policy file.
 
+Scanner `1.2.0` also reports metadata-only AI integration signals from explicit repository manifests and configuration files, including AI provider SDKs, MCP configuration files, vector store dependencies, agent/orchestration frameworks, and known Cerbi AI runtime-governance instrumentation. These findings help teams see where AI logging governance may be needed; they do not claim full runtime AI execution governance by themselves.
+
 ## Privacy and network behavior
 
 - Source code is scanned on the GitHub Actions runner.
 - The Action does not upload findings to Cerbi.
 - Cerbi telemetry is not enabled by this Action.
+- AI dependency detection reports package/configuration metadata only; it does not collect prompts, responses, MCP server values, or provider secrets.
 - The Action downloads the .NET 10 SDK when needed through `actions/setup-dotnet`.
 - The Action restores the `Cerbi.Scanner` tool package from NuGet.
 - GitHub receives SARIF only when `upload-sarif: 'true'` is explicitly configured.
 
 ## Why this is separate from CerbiShield
 
-Cerbi Scanner is the discovery and CI-policy layer. It can be used by itself. CerbiShield is the optional platform for organizations that need centralized policy, governance, evidence, and visibility across many repositories and workloads.
+Cerbi Scanner is the discovery and CI-policy layer. It can be used by itself. CerbiShield is the optional platform for organizations that need centralized policy, governance, evidence, and visibility across explicitly connected repositories and workloads.
 
 ## License
 

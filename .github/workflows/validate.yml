@@ -36,7 +36,7 @@ jobs:
           path: test-fixture
           policy: test-fixture/policies/cerbi-policy.yml
           fail-on: none
-          scanner-version: '1.1.0'
+          scanner-version: '1.2.0'
           upload-sarif: 'false'
 
       - name: Verify reports
@@ -91,5 +91,5 @@ jobs:
           path: test-fixture
           policy: test-fixture/policies/cerbi-policy.yml
           fail-on: none
-          scanner-version: '1.1.0'
+          scanner-version: '1.2.0'
           upload-sarif: 'true'
