@@ -36,7 +36,7 @@ jobs:
           path: test-fixture
           policy: test-fixture/policies/cerbi-policy.yml
           fail-on: none
-          scanner-version: '1.2.0'
+          scanner-version: '1.2.1'
           upload-sarif: 'false'
 
       - name: Verify reports
@@ -45,9 +45,12 @@ jobs:
           CERBI_JSON: ${{ steps.cerbi.outputs.json-file }}
           CERBI_SARIF: ${{ steps.cerbi.outputs.sarif-file }}
           CERBI_SUMMARY: ${{ steps.cerbi.outputs.summary-file }}
+          CERBI_AI_EVIDENCE: ${{ steps.cerbi.outputs.ai-evidence-file }}
+          CERBI_AI_SIGNALS: ${{ steps.cerbi.outputs.ai-signals }}
+          CERBI_AI_RAW_PAYLOAD_FINDINGS: ${{ steps.cerbi.outputs.ai-raw-payload-findings }}
           CERBI_EXIT: ${{ steps.cerbi.outputs.scanner-exit-code }}
         run: |
-          foreach ($file in @($env:CERBI_JSON, $env:CERBI_SARIF, $env:CERBI_SUMMARY)) {
+          foreach ($file in @($env:CERBI_JSON, $env:CERBI_SARIF, $env:CERBI_SUMMARY, $env:CERBI_AI_EVIDENCE)) {
             if ([string]::IsNullOrWhiteSpace($file) -or -not (Test-Path $file)) {
               throw "Expected Cerbi report was not generated: $file"
             }
@@ -55,6 +58,10 @@ jobs:
 
           if ($env:CERBI_EXIT -ne '0') {
             throw "Report-only validation expected scanner exit code 0, got $env:CERBI_EXIT"
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:CERBI_AI_SIGNALS) -or [string]::IsNullOrWhiteSpace($env:CERBI_AI_RAW_PAYLOAD_FINDINGS)) {
+            throw "Expected AI evidence output counts to be set."
           }
 
       - name: Upload validation reports
@@ -66,6 +73,7 @@ jobs:
             ${{ steps.cerbi.outputs.json-file }}
             ${{ steps.cerbi.outputs.sarif-file }}
             ${{ steps.cerbi.outputs.summary-file }}
+            ${{ steps.cerbi.outputs.ai-evidence-file }}
 
   sarif-upload:
     name: Verify GitHub code scanning upload
@@ -91,5 +99,5 @@ jobs:
           path: test-fixture
           policy: test-fixture/policies/cerbi-policy.yml
           fail-on: none
-          scanner-version: '1.2.0'
+          scanner-version: '1.2.1'
           upload-sarif: 'true'

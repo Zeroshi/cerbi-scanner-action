@@ -61,7 +61,7 @@ GitHub code-scanning availability depends on the repository and GitHub plan. The
 | `path` | `.` | Repository path to scan. |
 | `policy` | empty | Optional Cerbi policy file. Scanner discovery/default behavior applies when omitted. |
 | `fail-on` | `none` | Minimum finding severity that fails the Action. |
-| `scanner-version` | `1.2.0` | `Cerbi.Scanner` NuGet tool version. `latest` follows the newest published package. |
+| `scanner-version` | `1.2.1` | `Cerbi.Scanner` NuGet tool version. `latest` follows the newest published package. |
 | `output-directory` | runner temp | Directory for JSON, SARIF, and Markdown results. |
 | `no-snippets` | `true` | Requests privacy mode for report content. |
 | `upload-sarif` | `false` | Upload SARIF to GitHub code scanning. Requires `security-events: write`. |
@@ -73,9 +73,28 @@ GitHub code-scanning availability depends on the repository and GitHub plan. The
 | `json-file` | Absolute path to `findings.json`. |
 | `sarif-file` | Absolute path to `findings.sarif`. |
 | `summary-file` | Absolute path to the Markdown summary. |
+| `ai-evidence-file` | Absolute path to the AI Logging Evidence Markdown summary. |
+| `ai-evidence-exists` | `true` when the AI Logging Evidence Markdown summary was generated. |
+| `ai-signals` | Count of metadata-only AI logging governance signals detected in the explicit scan root. |
+| `ai-raw-payload-findings` | Count of raw AI-adjacent payload logging findings. |
+| `ai-runtime-governance-detected` | `true` when Cerbi AI runtime governance instrumentation is detected in the scan scope. |
 | `scanner-exit-code` | Scanner exit code: `0` clean, `1` threshold breached, `2` scanner/configuration error. |
 
-The Markdown report is also appended to the GitHub Actions job summary.
+The Markdown report and AI Logging Evidence summary are also appended to the GitHub Actions job summary.
+
+## AI Logging Evidence in CI
+
+Scanner `1.2.1` and later emits a metadata-only `aiLoggingEvidence` section in the JSON report when it detects AI provider SDKs, MCP configuration, vector-store clients, agent/orchestration frameworks, raw AI-adjacent payload logging, or Cerbi runtime governance markers inside the explicit scan root.
+
+The Action turns that JSON section into a readable `ai-logging-evidence.md` job summary. This is useful for a pull request or release gate because the team can see:
+
+- which AI providers or frameworks were detected;
+- whether runtime governance instrumentation was found;
+- which systems still need app, environment, provider, model, agent, or tool tags;
+- whether raw prompt, completion, RAG, or tool payload logging patterns were found;
+- the next action needed to connect CerbiStream, Gateway, or a governed logging policy.
+
+This summary does not include prompts, responses, tool argument bodies, source snippets, provider secrets, MCP server values, or raw file contents.
 
 ## Upload the generated reports as workflow artifacts
 
@@ -93,13 +112,14 @@ The Markdown report is also appended to the GitHub Actions job summary.
       ${{ steps.cerbi.outputs.json-file }}
       ${{ steps.cerbi.outputs.sarif-file }}
       ${{ steps.cerbi.outputs.summary-file }}
+      ${{ steps.cerbi.outputs.ai-evidence-file }}
 ```
 
 ## What the Scanner looks for
 
 The current Scanner supports C#, Go, Java, JavaScript/TypeScript, and Python logging patterns. It can identify governance issues such as sensitive/disallowed fields, risky payload logging, unsafe object serialization, and policy violations. Exact rules are determined by the installed `Cerbi.Scanner` version and optional Cerbi policy file.
 
-Scanner `1.2.0` also reports metadata-only AI integration signals from explicit repository manifests and configuration files, including AI provider SDKs, MCP configuration files, vector store dependencies, agent/orchestration frameworks, and known Cerbi AI runtime-governance instrumentation. These findings help teams see where AI logging governance may be needed; they do not claim full runtime AI execution governance by themselves.
+Scanner `1.2.1` also reports metadata-only AI integration signals from explicit repository manifests and configuration files, including AI provider SDKs, MCP configuration files, vector store dependencies, agent/orchestration frameworks, and known Cerbi AI runtime-governance instrumentation. These findings help teams see where AI logging governance may be needed; they do not claim full runtime AI execution governance by themselves.
 
 ## Privacy and network behavior
 

@@ -22,7 +22,7 @@ inputs:
   scanner-version:
     description: Cerbi.Scanner NuGet tool version. Use latest to follow the newest published scanner.
     required: false
-    default: '1.2.0'
+    default: '1.2.1'
   output-directory:
     description: Directory for JSON, SARIF, and Markdown results. Defaults to a runner-temporary Cerbi directory.
     required: false
@@ -46,6 +46,21 @@ outputs:
   summary-file:
     description: Absolute path to the generated Markdown summary.
     value: ${{ steps.scan.outputs.summary-file }}
+  ai-evidence-file:
+    description: Absolute path to the generated AI Logging Evidence Markdown summary.
+    value: ${{ steps.scan.outputs.ai-evidence-file }}
+  ai-evidence-exists:
+    description: Whether the generated AI Logging Evidence Markdown summary exists.
+    value: ${{ steps.scan.outputs.ai-evidence-exists }}
+  ai-signals:
+    description: Number of metadata-only AI logging governance signals found in the scan report.
+    value: ${{ steps.scan.outputs.ai-signals }}
+  ai-raw-payload-findings:
+    description: Number of raw AI-adjacent payload logging findings found in the scan report.
+    value: ${{ steps.scan.outputs.ai-raw-payload-findings }}
+  ai-runtime-governance-detected:
+    description: Whether Cerbi AI runtime governance instrumentation was detected in the scan scope.
+    value: ${{ steps.scan.outputs.ai-runtime-governance-detected }}
   scanner-exit-code:
     description: Cerbi Scanner exit code. 0 is clean, 1 means configured threshold breached, and 2 means scanner/configuration error.
     value: ${{ steps.scan.outputs.scanner-exit-code }}
