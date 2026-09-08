@@ -166,8 +166,33 @@ function Escape-Markdown {
 $scanPath = if ([string]::IsNullOrWhiteSpace($env:CERBI_SCAN_PATH)) { '.' } else { $env:CERBI_SCAN_PATH }
 $policyPath = $env:CERBI_POLICY
 $failOn = if ([string]::IsNullOrWhiteSpace($env:CERBI_FAIL_ON)) { 'none' } else { $env:CERBI_FAIL_ON }
-$scannerVersion = if ([string]::IsNullOrWhiteSpace($env:CERBI_SCANNER_VERSION)) { '1.2.1' } else { $env:CERBI_SCANNER_VERSION }
+$scannerVersion = if ([string]::IsNullOrWhiteSpace($env:CERBI_SCANNER_VERSION)) { '1.2.2' } else { $env:CERBI_SCANNER_VERSION }
 $noSnippets = $env:CERBI_NO_SNIPPETS -ne 'false'
+$uploadToCerbiShield = $env:CERBI_UPLOAD_TO_CERBISHIELD -eq 'true'
+$cerbiEndpoint = $env:CERBI_ENDPOINT
+$cerbiApp = $env:CERBI_APP
+$cerbiRepo = $env:CERBI_REPO
+$cerbiBranch = $env:CERBI_BRANCH
+$cerbiCommit = $env:CERBI_COMMIT
+$cerbiBuildId = $env:CERBI_BUILD_ID
+
+if (-not [string]::IsNullOrWhiteSpace($env:CERBI_TOKEN)) {
+    Write-Host "::add-mask::$env:CERBI_TOKEN"
+}
+
+if ($uploadToCerbiShield) {
+    if ([string]::IsNullOrWhiteSpace($cerbiEndpoint)) {
+        throw "upload-to-cerbishield requires cerbishield-url, set to the customer-hosted CerbiShield Dashboard or Router base URL."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($env:CERBI_TOKEN)) {
+        throw "upload-to-cerbishield requires cerbishield-token. Pass a token from GitHub Secrets."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($cerbiApp)) {
+        throw "upload-to-cerbishield requires app so CerbiShield can authorize the scan against the intended app context."
+    }
+}
 
 if ([string]::IsNullOrWhiteSpace($env:CERBI_OUTPUT_DIRECTORY)) {
     if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
@@ -244,6 +269,22 @@ $scanArgs = @(
 
 if (-not [string]::IsNullOrWhiteSpace($policyPath)) {
     $scanArgs += @('--policy', $policyPath)
+}
+
+if ($uploadToCerbiShield) {
+    $scanArgs += @('--upload', '--endpoint', $cerbiEndpoint, '--app', $cerbiApp)
+    if (-not [string]::IsNullOrWhiteSpace($cerbiRepo)) {
+        $scanArgs += @('--repo', $cerbiRepo)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($cerbiBranch)) {
+        $scanArgs += @('--branch', $cerbiBranch)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($cerbiCommit)) {
+        $scanArgs += @('--commit', $cerbiCommit)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($cerbiBuildId)) {
+        $scanArgs += @('--build-id', $cerbiBuildId)
+    }
 }
 
 if ($noSnippets) {
