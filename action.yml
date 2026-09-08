@@ -22,7 +22,7 @@ inputs:
   scanner-version:
     description: Cerbi.Scanner NuGet tool version. Use latest to follow the newest published scanner.
     required: false
-    default: '1.2.1'
+    default: '1.2.2'
   output-directory:
     description: Directory for JSON, SARIF, and Markdown results. Defaults to a runner-temporary Cerbi directory.
     required: false
@@ -35,6 +35,38 @@ inputs:
     description: Upload generated SARIF to GitHub code scanning. The workflow must grant security-events write permission.
     required: false
     default: 'false'
+  upload-to-cerbishield:
+    description: Explicitly upload scanner results to CerbiShield through the tenant-hosted scanner ingest endpoint. Requires cerbishield-url, cerbishield-token, and app.
+    required: false
+    default: 'false'
+  cerbishield-url:
+    description: Base URL of the customer-hosted CerbiShield Dashboard or Router.
+    required: false
+    default: ''
+  cerbishield-token:
+    description: Bearer token for CerbiShield upload. Pass from GitHub Secrets; it is masked and provided to the scanner through CERBI_TOKEN.
+    required: false
+    default: ''
+  app:
+    description: Cerbi app/service name used for X-Cerbi-App and scanner metadata when upload-to-cerbishield is true.
+    required: false
+    default: ''
+  repo:
+    description: Repository name or URL for scanner metadata. Defaults to github.repository when omitted.
+    required: false
+    default: ''
+  branch:
+    description: Branch name for scanner metadata. Defaults to github.ref_name when omitted.
+    required: false
+    default: ''
+  commit:
+    description: Commit SHA for scanner metadata. Defaults to github.sha when omitted.
+    required: false
+    default: ''
+  build-id:
+    description: Build or run identifier for scanner metadata. Defaults to github.run_id when omitted.
+    required: false
+    default: ''
 
 outputs:
   json-file:
@@ -83,6 +115,14 @@ runs:
         CERBI_SCANNER_VERSION: ${{ inputs.scanner-version }}
         CERBI_OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
         CERBI_NO_SNIPPETS: ${{ inputs.no-snippets }}
+        CERBI_UPLOAD_TO_CERBISHIELD: ${{ inputs.upload-to-cerbishield }}
+        CERBI_ENDPOINT: ${{ inputs.cerbishield-url }}
+        CERBI_TOKEN: ${{ inputs.cerbishield-token }}
+        CERBI_APP: ${{ inputs.app }}
+        CERBI_REPO: ${{ inputs.repo || github.repository }}
+        CERBI_BRANCH: ${{ inputs.branch || github.ref_name }}
+        CERBI_COMMIT: ${{ inputs.commit || github.sha }}
+        CERBI_BUILD_ID: ${{ inputs.build-id || github.run_id }}
       run: '& "${{ github.action_path }}/scripts/run-cerbi-scanner.ps1"'
 
     - name: Upload Cerbi SARIF to code scanning

@@ -61,10 +61,18 @@ GitHub code-scanning availability depends on the repository and GitHub plan. The
 | `path` | `.` | Repository path to scan. |
 | `policy` | empty | Optional Cerbi policy file. Scanner discovery/default behavior applies when omitted. |
 | `fail-on` | `none` | Minimum finding severity that fails the Action. |
-| `scanner-version` | `1.2.1` | `Cerbi.Scanner` NuGet tool version. `latest` follows the newest published package. |
+| `scanner-version` | `1.2.2` | `Cerbi.Scanner` NuGet tool version. `latest` follows the newest published package. |
 | `output-directory` | runner temp | Directory for JSON, SARIF, and Markdown results. |
 | `no-snippets` | `true` | Requests privacy mode for report content. |
 | `upload-sarif` | `false` | Upload SARIF to GitHub code scanning. Requires `security-events: write`. |
+| `upload-to-cerbishield` | `false` | Explicitly upload scanner results to the customer-hosted CerbiShield scanner ingest endpoint. |
+| `cerbishield-url` | empty | Base URL of the customer-hosted CerbiShield Dashboard or Router. Required when upload is enabled. |
+| `cerbishield-token` | empty | Bearer token for CerbiShield upload. Pass from GitHub Secrets. Required when upload is enabled. |
+| `app` | empty | Cerbi app/service name used for `X-Cerbi-App` and scanner metadata. Required when upload is enabled. |
+| `repo` | `github.repository` | Repository name or URL for scanner metadata. |
+| `branch` | `github.ref_name` | Branch name for scanner metadata. |
+| `commit` | `github.sha` | Commit SHA for scanner metadata. |
+| `build-id` | `github.run_id` | Build or run identifier for scanner metadata. |
 
 ## Outputs
 
@@ -96,6 +104,22 @@ The Action turns that JSON section into a readable `ai-logging-evidence.md` job 
 
 This summary does not include prompts, responses, tool argument bodies, source snippets, provider secrets, MCP server values, or raw file contents.
 
+## Upload AI evidence to CerbiShield
+
+Upload is off by default. When Pro++ AI Logging Governance is enabled in a customer-hosted CerbiShield deployment, the Action can send the scanner upload envelope to `/api/scanner/ingest`. CerbiShield stores only the metadata-only `aiLoggingEvidence` section for the AI Logging dashboard.
+
+```yaml
+- name: Cerbi logging governance scan
+  uses: Zeroshi/cerbi-scanner-action@v1
+  with:
+    upload-to-cerbishield: 'true'
+    cerbishield-url: https://your-cerbishield-dashboard.example.com
+    cerbishield-token: ${{ secrets.CERBI_TOKEN }}
+    app: claims-ai-service
+```
+
+The token is provided to the scanner through `CERBI_TOKEN`, not a command-line flag. The request does not include source code, source snippets, raw log templates, raw prompts, raw completions, RAG context bodies, MCP server values, provider secrets, or tool argument bodies.
+
 ## Upload the generated reports as workflow artifacts
 
 ```yaml
@@ -124,12 +148,13 @@ Scanner `1.2.1` also reports metadata-only AI integration signals from explicit 
 ## Privacy and network behavior
 
 - Source code is scanned on the GitHub Actions runner.
-- The Action does not upload findings to Cerbi.
+- The Action does not upload findings to Cerbi unless `upload-to-cerbishield: 'true'` is explicitly configured.
 - Cerbi telemetry is not enabled by this Action.
 - AI dependency detection reports package/configuration metadata only; it does not collect prompts, responses, MCP server values, or provider secrets.
 - The Action downloads the .NET 10 SDK when needed through `actions/setup-dotnet`.
 - The Action restores the `Cerbi.Scanner` tool package from NuGet.
 - GitHub receives SARIF only when `upload-sarif: 'true'` is explicitly configured.
+- CerbiShield receives scanner results only when upload is enabled and a token secret plus app context are supplied.
 
 ## Why this is separate from CerbiShield
 
